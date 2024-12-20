@@ -1,0 +1,181 @@
+# The following program takes in two arguments during the program call, namely the year and the gender. Then, it takws 
+# in a list of names entered by the user, separated by whitespace characters. The program prints out the rank of the 
+# entered name out of all the names of the same gender.
+
+# Avi Saraiya, October 17, 2024.
+
+#!/bin/bash
+
+#The following method checks the validity of the format of the input year
+valid_year_format() {
+	if [[ $1 =~ ^[0-9]{4}$ ]]
+	then
+		return 0
+	else
+		echo "Invalid year format, please enter four digits only." >&2
+		return 1
+	fi
+} 	
+
+#The following method checks the validity of the format of the input gender
+valid_gender() {
+	if [[ $1 =~ ^[FMBfmb]$ ]]
+	then
+		return 0
+	else
+		echo "Invalid gender argument, please enter only from [FMBfmb]." >&2 
+		return 1
+	fi
+	}
+
+#If the input gender is in the lower case, the following method converts it to upper case	    
+convert_gender_case() {
+	gender=$1
+	if [[ "$gender" == "f" ]]
+	then
+		gender="F"
+	elif [[ "$gender" == "m" ]]
+	then
+		gender="M"
+	elif [[ "$gender" == "b" ]]
+	then
+		gender="B"
+	fi
+	echo $gender
+	return 0
+}
+
+#The following method checks if the file for the input year exists or not
+year_file_exists() {
+	if [[ $1 -gt 1879 && $1 -lt 2023 ]]
+	then
+		return 0
+	else
+		return 1
+	fi
+	}
+
+#The following method checks for the validity of an input name
+valid_name() {
+	if [[ $1 =~ ^[A-Za-z]+$ ]]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
+#The following method finds the total number of female names in a year file
+total_gender_names_f() {
+	total_ranks_f=$(cat "yob$1.txt" | grep -P ",F" | wc -l)
+        echo $total_ranks_f
+	return 0
+        }
+
+#The following method finds the total number of male names in a year file
+total_gender_names_m() {
+	total_ranks_m=$(cat "yob$1.txt" | grep -P ",M" | wc -l)
+	echo $total_ranks_m
+        return 0
+        }
+
+#The following method finds the rank of the input name out of the total female names
+rank_f() {
+	rank=$(cat "yob$1.txt" | grep -P -n ",F" | grep -P -i "\b$2\b" |head -n 1 | grep -P -o ^'\d*')
+	echo $rank
+}
+
+#The following method finds the rank of the input name out of the total male names
+rank_m() {
+	decrease_rank_by=$(total_gender_names_f $1)
+	intermediate_rank=$(cat "yob$1.txt" | grep -P -n ",M" | grep -P -i "\b$2\b" |head -n 1 | grep -P -o '^\d{4}')
+	rank=$((intermediate_rank - decrease_rank_by))
+	echo $rank
+}
+
+#The following is the main body of the program
+
+#The if statement checks for the help flag
+if [[ $# -eq 1 && $1 == "--help" ]]
+then
+	echo "Usage : bn [YEAR] [GENDER]"
+	echo "Ensure that the year is from 1880 to 2022, and the gender is in [FMBfmb]"
+	echo "Example: bn 2022 Avi"
+#The elif statement checks to make sure no other arguments are added with the help flag
+elif [[ $# -eq 2 && $1 == "--help" ]]
+then
+	echo "Cannot use other arguments with the help flag"
+	echo "Try doing 'bn --help'"
+#The elif statament checks to make sure that if the help flag is not used, then the number of arguments is valid or not
+elif [[ $# -eq 2 && $1 != "--help" ]]
+then
+	year=$1
+	gender=$2
+        if valid_year_format $year && valid_gender $gender
+        then
+		converted_gender=$(convert_gender_case $gender)
+		if year_file_exists $year
+		then
+			while read line
+			do 
+				for name in $line
+				do
+					if valid_name $name
+					then
+						if [[ $converted_gender == "F" ]]
+						then
+							rankf=$(rank_f $year $name)
+							if [[ $rankf -gt 0 ]]
+							then
+								total_numberf=$(total_gender_names_f $year)
+								echo "$name ranked $rankf out of $total_numberf female names"
+							else
+								echo "$name not found among female names"
+							fi
+						elif [[ $converted_gender == "M" ]]
+						then
+							rankm=$(rank_m $year $name)
+							if [[ $rankm -gt 0 ]]
+							then
+								total_numberm=$(total_gender_names_m $year)
+								echo "$name ranked $rankm out of $total_numberm male names"
+							else
+								echo "$name not found among male names"
+							fi
+						else
+							b_rankf=$(rank_f $year $name)
+                                                        if [[ $b_rankf -gt 0 ]]
+                                                        then
+                                                                b_total_numberf=$(total_gender_names_f $year)
+                                                                echo "$name ranked $b_rankf out of $b_total_numberf female names"
+                                                        else
+                                                                echo "$name not found among female names"
+                                                        fi	
+							b_rankm=$(rank_m $year $name)
+                                                        if [[ $b_rankm -gt 0 ]]
+                                                        then
+                                                                b_total_numberm=$(total_gender_names_m $year)
+                                                                echo "$name ranked $b_rankm out of $b_total_numberm male names"
+                                                        else
+                                                                echo "$name not found among male names"
+                                                        fi
+						fi
+					else
+						echo "Badly formatted name, please enter alphabets only" >&2
+						exit 3
+					fi
+				done
+			done
+
+		else
+			echo "No data for $year"
+			exit 4
+		fi
+        else
+                exit 2
+	fi
+
+else
+        echo "Invalid number of arguments, should be 2." >&2
+        exit 1
+fi
