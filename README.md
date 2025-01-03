@@ -57,5 +57,9 @@ It supports the years between 1880 and 2022 and works with three genders: Female
 * <b>rank_f:</b> Retrieves the rank of a female name.
 * <b>rank_m:</b> Retrieves the rank of a male name.
 
+## Note
+For the sake of simplicity, this project deals only with two genders.
+It can be used for as many genders as the user desires.
+
 ## License
 This script is open source. You are free to use, modify, and distribute it under the MIT License.
